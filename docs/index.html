@@ -109,7 +109,7 @@ function render() {
           <td>${p.linkedin ? `<a href="${esc(p.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>` : "—"}</td>
           <td>${email}</td>
           <td class="why">${esc(p.why)}</td>
-          <td><select class="status${st !== STATUSES[0] ? " done" : ""}" data-k="${esc(personKey(c, p))}">${opts}</select></td>
+          <td><select class="status${st !== STATUSES[0] ? " done" : ""}" data-k="${esc(personKey(c, p))}" aria-label="Status for ${esc(p.name)} at ${esc(c.name)}">${opts}</select></td>
         </tr>`;
       }).join("");
       const roles = (c.roles || []).map(r => `<li>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>` : esc(r.title)}${r.posted ? ` <span class="meta">${esc(r.posted)}</span>` : ""}</li>`).join("");
@@ -129,6 +129,9 @@ function render() {
       </article>`);
     }
   }
+  if (day.unmet && day.unmet.length) {
+    html.unshift(`<p class="flag">Short today: ${esc(day.unmet.join("; "))}. Add companies to config/targets.json or widen discovery in config/profile.json.</p>`);
+  }
   list.innerHTML = html.join("") || '<p class="empty">No companies in this filter.</p>';
   document.getElementById("stats").textContent = `${cs.length} companies · ${people} people · ${done} contacted`;
 }
@@ -147,7 +150,18 @@ document.querySelectorAll("[data-f]").forEach(b => b.addEventListener("click", (
   try {
     const idx = await getJSON("data/index.json");
     sel.innerHTML = idx.days.map(d => `<option>${esc(d)}</option>`).join("");
-    const load = async d => { day = await getJSON(`data/days/${d}.json`); render(); };
+    let shown = null;
+    const load = async d => {
+      try {
+        day = await getJSON(`data/days/${d}.json`);
+        shown = d;
+        render();
+      } catch (e) {
+        if (shown !== null) sel.value = shown;  // keep the picker on the day still on screen
+        document.getElementById("list").insertAdjacentHTML("afterbegin",
+          `<p class="flag">Couldn't load ${esc(d)}. Showing ${esc(shown ?? "nothing")} instead.</p>`);
+      }
+    };
     sel.addEventListener("change", () => load(sel.value));
     if (idx.days.length) await load(idx.days[0]); else render();
   } catch (e) {

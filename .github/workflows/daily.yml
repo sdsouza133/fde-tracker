@@ -2,7 +2,8 @@ name: Daily outreach list
 
 on:
   schedule:
-    - cron: "0 11 * * *"   # 07:00 Eastern (06:00 in winter)
+    - cron: "0 7 * * *"
+      timezone: "America/Toronto"   # 07:00 Eastern all year
   workflow_dispatch:
 
 permissions:

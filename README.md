@@ -22,7 +22,15 @@ For each company, Apollo supplies:
 
 ## Credits
 
-Each day uses about 10 organization enrichments plus about 30 email reveals through `people/bulk_match`, so roughly 40 Apollo credits. People search, job postings and news searches don't reveal contact data. `people_per_company` in `config/profile.json` sets the reveal count.
+A normal day uses roughly 60 Apollo credits:
+
+- 10 organization enrichments (1 each)
+- 10 job-posting pages and 10 news-search pages (1 per page)
+- About 30 people reveals through `people/bulk_match` (1 or more each)
+
+Once the hand-picked list runs out, each discovery page costs 1 more credit. People search doesn't use credits. `people_per_company` in `config/profile.json` sets the reveal count.
+
+If an Apollo request fails, the run stops without writing anything, so you can just re-run it. If there aren't enough companies left to fill a country's quota, the day is marked "short" in `TRACKER.md` and on the page.
 
 ## Changing who gets picked
 
