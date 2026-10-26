@@ -1,0 +1,33 @@
+{
+  "candidate": "uOttawa MS student (AI safety thesis, supervisor Kathleen Fraser) with 3 years at Marsh McLennan as IT Systems Engineer then Senior Engineer",
+  "offer": "Part-time remote contractor for AI evals, red-teaming, pre-go-live testing and integrations",
+  "daily_mix": {"US": 8, "CA": 2},
+  "ca_flag": "Canadian client: off-campus work capped at 24 h/week during term (study permit). Log hours.",
+  "her_stack": ["c#", ".net", "asp.net", "angular", "node", "node.js", "javascript", "typescript", "sql", "rest", "python", "git", "azure"],
+  "proof_points": {
+    "qa": "3 years testing production systems at Marsh McLennan, including Mercer's billing system",
+    "regulated": "Insurance and fintech billing at Marsh McLennan, with controls and audit trails",
+    "ai_safety": "MS thesis in AI safety at uOttawa",
+    "engineering": "Shipped C#/.NET, Angular, Node, SQL and REST code in production"
+  },
+  "role_priority": [
+    {"match": ["founder", "co-founder", "cofounder", "ceo", "chief executive"], "weight": 100, "why": "Founders at this size decide contractor spend themselves and usually run the first customer deployments"},
+    {"match": ["cto", "chief technology", "vp engineering", "vp of engineering", "head of engineering", "engineering lead"], "weight": 90, "why": "Owns the engineering roadmap and feels the cost of untested AI releases; can scope a part-time contract quickly"},
+    {"match": ["chief ai", "head of ai", "head of ml", "machine learning", "ai lead", "research"], "weight": 80, "why": "Owns model quality, so evals and red-teaming land on their desk"},
+    {"match": ["forward deployed", "solutions", "customer engineer", "deployment", "implementation"], "weight": 75, "why": "Runs customer deployments, the work an FDE contractor plugs into"},
+    {"match": ["qa", "quality", "test", "reliability"], "weight": 65, "why": "Owns testing; her QA background maps one-to-one"},
+    {"match": ["product", "cpo"], "weight": 50, "why": "Decides what gets built and tested before go-live"}
+  ],
+  "person_titles": [
+    "founder", "co-founder", "ceo", "cto", "chief ai officer",
+    "head of engineering", "vp engineering", "head of ai", "head of machine learning",
+    "forward deployed engineer", "head of solutions", "solutions engineering",
+    "head of qa", "quality engineering", "head of product"
+  ],
+  "people_per_company": 3,
+  "relevant_job_keywords": ["forward deployed", "fde", "solutions engineer", "deployment", "implementation", "qa", "quality", "test", "eval", "ai engineer", "ml engineer", "red team", "safety", "trust", "integration", "customer engineer", "contract", "part-time", "freelance"],
+  "discovery": {
+    "US": {"organization_locations": ["New York, US", "United States"], "q_organization_keyword_tags": ["ai safety", "llm evaluation", "ai agents", "generative ai", "insurtech", "fintech", "ai governance"], "organization_num_employees_ranges": ["1,10", "11,50"]},
+    "CA": {"organization_locations": ["Toronto, Canada", "Ottawa, Canada", "Vancouver, Canada"], "q_organization_keyword_tags": ["ai safety", "llm evaluation", "ai agents", "generative ai", "insurtech", "fintech", "ai governance"], "organization_num_employees_ranges": ["1,10", "11,50"]}
+  }
+}
