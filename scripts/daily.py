@@ -274,6 +274,7 @@ def build_company(t, apollo, profile, today):
         people.append({
             "name": m.get("name") or f"{p.get('first_name', '')} {p.get('last_name_obfuscated', '')}".strip(),
             "title": p.get("title"),
+            "apollo_id": p.get("id"),
             "linkedin": m.get("linkedin_url"),
             "email": m.get("email"),
             "email_status": m.get("email_status"),

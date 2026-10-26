@@ -11,7 +11,7 @@ For each company, Apollo supplies:
 ## Where to read it
 
 - **`TRACKER.md`:** today's list, rendered by GitHub.
-- **`docs/index.html`:** an interactive view with a day picker, US/Canada filter, and a status per person (To contact → Connection sent → … → Call booked). Statuses are kept in your browser only. To use it, open the file from a local clone (`python -m http.server -d docs`), or turn on GitHub Pages if your plan allows Pages for private repos.
+- **`docs/index.html`:** an interactive view with a day picker, US/Canada filter, and a status per person (To contact → Connection sent → … → Call booked). Statuses are kept in your browser only. To use it, open the file from a local clone (`python -m http.server -d docs`). Don't publish `docs/` with GitHub Pages: the site can be public even when the repository is private, and it would expose every contact.
 - **`docs/data/days/`:** one JSON file per day.
 
 ## Setup
