@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FDE Outreach Tracker</title>
+<style>
+:root {
+  --bg: #f7f7f5; --card: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e4e3de;
+  --accent: #2f5bd3; --us: #2f5bd3; --ca: #b4441f; --ok: #237a4b; --warn-bg: #fff4e5; --warn: #8a4b00;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #151514; --card: #1f1f1d; --text: #ecebe6; --muted: #a09f98; --line: #34332f;
+    --accent: #7b9cff; --us: #7b9cff; --ca: #f0875f; --ok: #5fcf8f; --warn-bg: #3a2a12; --warn: #f5c27a; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.sub { color: var(--muted); margin: 0 0 20px; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 20px; }
+select, button { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+button.on { border-color: var(--accent); color: var(--accent); }
+.stats { margin-left: auto; color: var(--muted); font-size: 14px; }
+h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 28px 0 10px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+.head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.head h3 { margin: 0; font-size: 18px; }
+.tag { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 99px; border: 1px solid currentColor; }
+.tag.US { color: var(--us); } .tag.CA { color: var(--ca); }
+.meta { color: var(--muted); font-size: 14px; }
+.flag { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 6px 10px; font-size: 14px; margin: 10px 0 0; }
+.angle { margin: 10px 0 0; }
+ul.intel { margin: 8px 0 0; padding-left: 18px; }
+ul.intel li { margin: 2px 0; }
+table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+th, td { text-align: left; padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; }
+a { color: var(--accent); }
+.why { color: var(--muted); }
+.unv { color: var(--warn); font-size: 12px; }
+.status { padding: 4px 6px; }
+.status.done { color: var(--ok); border-color: var(--ok); }
+details { margin-top: 10px; }
+details p { white-space: pre-wrap; background: var(--bg); border-radius: 8px; padding: 10px; margin: 6px 0; }
+.empty { color: var(--muted); padding: 40px 0; text-align: center; }
+@media (max-width: 680px) {
+  table, thead, tbody, tr, th, td { display: block; }
+  thead { display: none; }
+  tr { border-top: 1px solid var(--line); padding: 8px 0; }
+  td { border: 0; padding: 2px 0; }
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>FDE Outreach Tracker</h1>
+  <p class="sub">Ten companies a day for part-time AI evals and testing contracts. US first; Canadian clients are capped at 24 h/week during term.</p>
+  <div class="bar">
+    <select id="day" aria-label="Day"></select>
+    <button data-f="all" class="on">All</button>
+    <button data-f="US">US</button>
+    <button data-f="CA">Canada</button>
+    <span class="stats" id="stats"></span>
+  </div>
+  <div id="list"><p class="empty">Loading…</p></div>
+</main>
+<script>
+const STATUSES = ["To contact", "Connection sent", "Messaged", "Replied", "Call booked", "Not a fit"];
+let day = null, filter = "all";
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+}
+function store(k, v) {
+  try {
+    if (v === undefined) return localStorage.getItem(k);
+    localStorage.setItem(k, v);
+  } catch (e) { return null; }
+}
+function personKey(c, p) { return "fde:" + c.domain + ":" + (p.linkedin || p.email || p.name); }
+
+async function getJSON(path) {
+  const r = await fetch(path, {cache: "no-store"});
+  if (!r.ok) throw new Error(path + " " + r.status);
+  return r.json();
+}
+
+function render() {
+  const list = document.getElementById("list");
+  if (!day) { list.innerHTML = '<p class="empty">No days yet. The daily job writes the first one.</p>'; return; }
+  const cs = day.companies.filter(c => filter === "all" || c.country === filter);
+  let people = 0, done = 0;
+  const html = [];
+  for (const country of ["US", "CA"]) {
+    const group = cs.filter(c => c.country === country);
+    if (!group.length) continue;
+    html.push(`<h2>${country === "US" ? "United States" : "Canada (24 h/week cap)"}</h2>`);
+    for (const c of group) {
+      const rows = c.people.map(p => {
+        people++;
+        const st = store(personKey(c, p)) || STATUSES[0];
+        if (st !== STATUSES[0]) done++;
+        const opts = STATUSES.map(s => `<option${s === st ? " selected" : ""}>${s}</option>`).join("");
+        const email = p.email ? `<a href="mailto:${esc(p.email)}">${esc(p.email)}</a>` +
+          (p.email_status && p.email_status !== "verified" ? ` <span class="unv">${esc(p.email_status)}</span>` : "") : "—";
+        return `<tr>
+          <td><strong>${esc(p.name)}</strong><br><span class="meta">${esc(p.title)}</span></td>
+          <td>${p.linkedin ? `<a href="${esc(p.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>` : "—"}</td>
+          <td>${email}</td>
+          <td class="why">${esc(p.why)}</td>
+          <td><select class="status${st !== STATUSES[0] ? " done" : ""}" data-k="${esc(personKey(c, p))}">${opts}</select></td>
+        </tr>`;
+      }).join("");
+      const roles = (c.roles || []).map(r => `<li>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>` : esc(r.title)}${r.posted ? ` <span class="meta">${esc(r.posted)}</span>` : ""}</li>`).join("");
+      html.push(`<article class="card">
+        <div class="head">
+          <h3>${esc(c.name)}</h3><span class="tag ${esc(c.country)}">${esc(c.country)}</span>
+          <a class="meta" href="https://${esc(c.domain)}" target="_blank" rel="noopener">${esc(c.domain)}</a>
+          ${c.linkedin ? `<a class="meta" href="${esc(c.linkedin)}" target="_blank" rel="noopener">Company LinkedIn</a>` : ""}
+          ${c.location ? `<span class="meta">${esc(c.location)}</span>` : ""}
+        </div>
+        ${c.flag ? `<p class="flag">${esc(c.flag)}</p>` : ""}
+        ${c.angle ? `<p class="angle"><strong>Why her:</strong> ${esc(c.angle)}</p>` : ""}
+        ${c.intel && c.intel.length ? `<ul class="intel">${c.intel.map(i => `<li>${esc(i)}</li>`).join("")}</ul>` : ""}
+        ${roles ? `<details><summary>Relevant open roles</summary><ul class="intel">${roles}</ul></details>` : ""}
+        <table><thead><tr><th>Person</th><th>LinkedIn</th><th>Email</th><th>Why them</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>
+        <details><summary>Draft note (edit before sending)</summary><p>${esc(c.opener)}</p></details>
+      </article>`);
+    }
+  }
+  list.innerHTML = html.join("") || '<p class="empty">No companies in this filter.</p>';
+  document.getElementById("stats").textContent = `${cs.length} companies · ${people} people · ${done} contacted`;
+}
+
+document.addEventListener("change", e => {
+  if (e.target.matches("select.status")) { store(e.target.dataset.k, e.target.value); render(); }
+});
+document.querySelectorAll("[data-f]").forEach(b => b.addEventListener("click", () => {
+  filter = b.dataset.f;
+  document.querySelectorAll("[data-f]").forEach(x => x.classList.toggle("on", x === b));
+  render();
+}));
+
+(async () => {
+  const sel = document.getElementById("day");
+  try {
+    const idx = await getJSON("data/index.json");
+    sel.innerHTML = idx.days.map(d => `<option>${esc(d)}</option>`).join("");
+    const load = async d => { day = await getJSON(`data/days/${d}.json`); render(); };
+    sel.addEventListener("change", () => load(sel.value));
+    if (idx.days.length) await load(idx.days[0]); else render();
+  } catch (e) {
+    render();
+  }
+})();
+</script>
+</body>
+</html>
