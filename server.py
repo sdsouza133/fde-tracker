@@ -52,7 +52,8 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if not self.authorized():
             return self.deny()
-        if self.path.split("?")[0].endswith("/") and self.path != "/":
+        path = self.path.split("?", 1)[0]
+        if path.endswith("/") and path != "/":
             self.send_error(404)  # no directory listings
             return
         super().do_GET()
