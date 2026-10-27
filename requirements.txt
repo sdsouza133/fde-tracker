@@ -1,0 +1,2 @@
+# No dependencies: server.py and scripts/daily.py use only the standard library.
+# This file tells Railway's builder the service is Python.

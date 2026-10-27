@@ -13,6 +13,15 @@ For each company, Apollo supplies:
 - **`TRACKER.md`:** today's list, rendered by GitHub.
 - **`docs/index.html`:** an interactive view with a day picker, US/Canada filter, and a status per person (To contact → Connection sent → … → Call booked). Statuses are kept in your browser only. To use it, open the file from a local clone (`python -m http.server -d docs`). Don't publish `docs/` with GitHub Pages: the site can be public even when the repository is private, and it would expose every contact.
 - **`docs/data/days/`:** one JSON file per day.
+- **Railway:** `server.py` serves the page behind a password (see below). Railway redeploys whenever the daily job commits, so the site always shows the latest day.
+
+## Hosting on Railway
+
+The service deploys from this repo's `main` branch using `railway.json`. Its start command is `python server.py`, with a health check on `/healthz`.
+
+- **`TRACKER_PASSWORD`:** set this variable in the Railway service. It must be at least 12 characters, or the server refuses to start. The browser asks for a username and password; any username works.
+- **Domain:** Railway → service → Settings → Networking → Generate Domain.
+- **Statuses:** a person's status lives in each browser's local storage, so it doesn't sync between devices.
 
 ## Setup
 
