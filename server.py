@@ -1,7 +1,8 @@
-"""Serve docs/ (the tracker page and its data) behind HTTP Basic auth, for hosting on Railway.
+"""Serve docs/ (the tracker page and its data) for hosting on Railway.
 
-Run: TRACKER_PASSWORD=... python server.py   (PORT defaults to 8080)
-Any username works; only the password is checked. /healthz is open so the platform can probe it.
+Run: python server.py   (PORT defaults to 8080)
+The site is public unless TRACKER_PASSWORD is set; then every page needs HTTP Basic auth with that
+password (any username). /healthz is always open so the platform can probe it.
 """
 import base64
 import hmac
@@ -16,7 +17,7 @@ MIN_PASSWORD = 12
 
 
 class Handler(SimpleHTTPRequestHandler):
-    password = b""
+    password = b""  # empty: public site
 
     def end_headers(self):
         self.send_header("X-Robots-Tag", "noindex, nofollow")
@@ -26,6 +27,8 @@ class Handler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def authorized(self):
+        if not self.password:
+            return True
         header = self.headers.get("Authorization", "")
         if not header.startswith("Basic "):
             return False
@@ -69,12 +72,12 @@ class Handler(SimpleHTTPRequestHandler):
 
 def main():
     password = os.environ.get("TRACKER_PASSWORD", "")
-    if len(password) < MIN_PASSWORD:
-        sys.exit(f"TRACKER_PASSWORD must be set to at least {MIN_PASSWORD} characters; refusing to serve contact data without it")
+    if password and len(password) < MIN_PASSWORD:
+        sys.exit(f"TRACKER_PASSWORD must be at least {MIN_PASSWORD} characters, or unset for a public site")
     Handler.password = password.encode()
     port = int(os.environ.get("PORT", "8080"))
     server = ThreadingHTTPServer(("0.0.0.0", port), partial(Handler, directory=str(DOCS)))
-    print(f"serving {DOCS} on :{port}", flush=True)
+    print(f"serving {DOCS} on :{port} ({'password required' if password else 'public, no password'})", flush=True)
     server.serve_forever()
 
 
