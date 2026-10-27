@@ -13,13 +13,14 @@ For each company, Apollo supplies:
 - **`TRACKER.md`:** today's list, rendered by GitHub.
 - **`docs/index.html`:** an interactive view with a day picker, US/Canada filter, and a status per person (To contact → Connection sent → … → Call booked). Statuses are kept in your browser only. To use it, open the file from a local clone (`python -m http.server -d docs`). Don't publish `docs/` with GitHub Pages: the site can be public even when the repository is private, and it would expose every contact.
 - **`docs/data/days/`:** one JSON file per day.
-- **Railway:** `server.py` serves the page behind a password (see below). Railway redeploys whenever the daily job commits, so the site always shows the latest day.
+- **Railway:** `server.py` serves the page (see below). Railway redeploys whenever the daily job commits, so the site always shows the latest day.
 
 ## Hosting on Railway
 
-The service deploys from this repo's `main` branch using `railway.json`. Its start command is `python server.py`, with a health check on `/healthz`.
+The service deploys from this repo's `main` branch using `railway.json`. Its start command is `python server.py --host 0.0.0.0`, with a health check on `/healthz`. Run locally, `python server.py` listens on 127.0.0.1 only.
 
-- **`TRACKER_PASSWORD`:** set this variable in the Railway service. It must be at least 12 characters, or the server refuses to start. The browser asks for a username and password; any username works.
+- **Access:** the site is **public**. Anyone with the address can see every contact, including emails, though search engines are told not to index it.
+- **`TRACKER_PASSWORD`:** set this variable (at least 12 characters) to require a password instead. The browser then asks for a username and password; any username works. Remove the variable to go back to public.
 - **Domain:** Railway → service → Settings → Networking → Generate Domain.
 - **Statuses:** a person's status lives in each browser's local storage, so it doesn't sync between devices.
 
