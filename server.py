@@ -1,9 +1,11 @@
 """Serve docs/ (the tracker page and its data) for hosting on Railway.
 
-Run: python server.py   (PORT defaults to 8080)
+Run: python server.py [--host 0.0.0.0]   (PORT defaults to 8080; host defaults to 127.0.0.1,
+Railway's start command passes 0.0.0.0)
 The site is public unless TRACKER_PASSWORD is set; then every page needs HTTP Basic auth with that
 password (any username). /healthz is always open so the platform can probe it.
 """
+import argparse
 import base64
 import hmac
 import os
@@ -71,13 +73,16 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--host", default="127.0.0.1", help="interface to listen on; 0.0.0.0 only where the platform needs it")
+    host = ap.parse_args().host
     password = os.environ.get("TRACKER_PASSWORD", "")
     if password and len(password) < MIN_PASSWORD:
         sys.exit(f"TRACKER_PASSWORD must be at least {MIN_PASSWORD} characters, or unset for a public site")
     Handler.password = password.encode()
     port = int(os.environ.get("PORT", "8080"))
-    server = ThreadingHTTPServer(("0.0.0.0", port), partial(Handler, directory=str(DOCS)))
-    print(f"serving {DOCS} on :{port} ({'password required' if password else 'public, no password'})", flush=True)
+    server = ThreadingHTTPServer((host, port), partial(Handler, directory=str(DOCS)))
+    print(f"serving {DOCS} on {host}:{port} ({'password required' if password else 'public, no password'})", flush=True)
     server.serve_forever()
 
 

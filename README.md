@@ -17,7 +17,7 @@ For each company, Apollo supplies:
 
 ## Hosting on Railway
 
-The service deploys from this repo's `main` branch using `railway.json`. Its start command is `python server.py`, with a health check on `/healthz`.
+The service deploys from this repo's `main` branch using `railway.json`. Its start command is `python server.py --host 0.0.0.0`, with a health check on `/healthz`. Run locally, `python server.py` listens on 127.0.0.1 only.
 
 - **Access:** the site is **public**. Anyone with the address can see every contact, including emails, though search engines are told not to index it.
 - **`TRACKER_PASSWORD`:** set this variable (at least 12 characters) to require a password instead. The browser then asks for a username and password; any username works. Remove the variable to go back to public.
