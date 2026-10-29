@@ -1,2 +1,3 @@
-# No dependencies: server.py and scripts/daily.py use only the standard library.
-# This file tells Railway's builder the service is Python.
+# server.py and scripts/daily.py use only the standard library.
+# tzdata gives zoneinfo the America/Toronto rules on slim images that ship without them.
+tzdata

@@ -1,7 +1,8 @@
 """Pick today's 10 companies, find who to pitch at each through Apollo, and write the tracker data.
 
 Run: APOLLO_API_KEY=... python scripts/daily.py [--date YYYY-MM-DD] [--mock]
-Uses only the standard library so the GitHub Action needs no install step.
+On Railway, server.py runs this every morning and TRACKER_DATA_DIR points at the service's volume,
+so contact data never lands in the repo. Without it, output goes into docs/data and state/.
 """
 import argparse
 import datetime as dt
@@ -17,8 +18,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "config"
-DATA = ROOT / "docs" / "data"
-STATE = ROOT / "state" / "state.json"
+OUT = os.environ.get("TRACKER_DATA_DIR")
+DATA = Path(OUT) / "data" if OUT else ROOT / "docs" / "data"
+STATE = Path(OUT) / "state.json" if OUT else ROOT / "state" / "state.json"
+TRACKER_MD = Path(OUT) / "TRACKER.md" if OUT else ROOT / "TRACKER.md"
 API = "https://api.apollo.io/api/v1"
 MAX_DISCOVERY_PAGES = 50
 
@@ -360,12 +363,12 @@ def main():
 
     day = {"date": args.date, "companies": companies, "unmet": unmet}
     save_json(day_file, day)
-    (ROOT / "TRACKER.md").write_text(markdown(day) + "\n", encoding="utf-8")
+    TRACKER_MD.write_text(markdown(day) + "\n", encoding="utf-8")
     index = load_json(DATA / "index.json", {"days": []})
     index["days"] = sorted(set(index["days"]) | {args.date}, reverse=True)
     save_json(DATA / "index.json", index)
     save_json(STATE, state)
-    print(f"wrote {day_file.relative_to(ROOT)}: {len(companies)} companies, "
+    print(f"wrote {day_file}: {len(companies)} companies, "
           f"{sum(len(c['people']) for c in companies)} people")
 
 

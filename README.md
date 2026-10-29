@@ -1,6 +1,6 @@
 # fde-tracker
 
-A daily outreach list for part-time AI evals and testing contracts. Every morning a GitHub Action picks 10 startups: 8 in the US and 2 in Canada. Canadian clients are flagged because a study permit caps that work at 24 h/week during term.
+A daily outreach list for part-time AI evals and testing contracts. Every morning the Railway service picks 10 startups: 8 in the US and 2 in Canada. Canadian clients are flagged because a study permit caps that work at 24 h/week during term.
 
 For each company, Apollo supplies:
 
@@ -8,27 +8,23 @@ For each company, Apollo supplies:
 - **Intel for the pitch:** funding stage and recency, headcount and 6-month growth, engineering team size, open roles that fit (FDE, solutions, QA, evals), stack overlap with hers, and recent news.
 - **A short draft note** to edit before sending.
 
-## Where to read it
+## How it runs
 
-- **`TRACKER.md`:** today's list, rendered by GitHub.
-- **`docs/index.html`:** an interactive view with a day picker, US/Canada filter, and a status per person (To contact → Connection sent → … → Call booked). Statuses are kept in your browser only. To use it, open the file from a local clone (`python -m http.server -d docs`). Don't publish `docs/` with GitHub Pages: the site can be public even when the repository is private, and it would expose every contact.
-- **`docs/data/days/`:** one JSON file per day.
-- **Railway:** `server.py` serves the page (see below). Railway redeploys whenever the daily job commits, so the site always shows the latest day.
+Everything runs in one Railway service, deployed from `main` by `railway.json`. The start command is `python server.py --host 0.0.0.0`, with a health check on `/healthz`.
 
-## Hosting on Railway
-
-The service deploys from this repo's `main` branch using `railway.json`. Its start command is `python server.py --host 0.0.0.0`, with a health check on `/healthz`. Run locally, `python server.py` listens on 127.0.0.1 only.
-
-- **Access:** the site is **public**. Anyone with the address can see every contact, including emails, though search engines are told not to index it.
-- **`TRACKER_PASSWORD`:** set this variable (at least 12 characters) to require a password instead. The browser then asks for a username and password; any username works. Remove the variable to go back to public.
-- **Domain:** Railway → service → Settings → Networking → Generate Domain.
+- **Web:** `server.py` serves the page.
+- **Daily job:** a background thread runs `scripts/daily.py` at 07:00 Toronto time (`DAILY_HOUR`), and once at startup if today's list is missing. A failed run is retried an hour later, up to 3 tries a day.
+- **Storage:** day files, `TRACKER.md` and the list of companies already shown live on a Railway volume, mounted at `TRACKER_DATA_DIR`. Contact data stays out of this public repo, and redeploys keep it.
 - **Statuses:** a person's status lives in each browser's local storage, so it doesn't sync between devices.
 
-## Setup
+## Railway variables
 
-1. **Make the repo private.** The output contains people's names and emails, so the workflow refuses to run in a public repo. Go to Settings → General → Danger Zone → Change visibility.
-2. **Add your Apollo API key.** Create it in Apollo under Settings → Integrations → API. Then in GitHub, go to Settings → Secrets and variables → Actions → New repository secret, named `APOLLO_API_KEY`.
-3. **Run it.** Go to Actions → Daily outreach list → Run workflow. After that it runs every day at 07:00 Eastern.
+| Variable | Value | Notes |
+|---|---|---|
+| `APOLLO_API_KEY` | your Apollo API key | Apollo → Settings → Integrations → API. The daily job stays off until it's set. |
+| `TRACKER_DATA_DIR` | the volume's mount path, e.g. `/data` | Required for the daily job. |
+| `TRACKER_PASSWORD` | optional, 12+ characters | Unset means the site is **public**: anyone with the address sees every contact, emails included, though search engines are told not to index it. |
+| `DAILY_HOUR` | optional, default `7` | Toronto local hour for the daily run. |
 
 ## Credits
 
@@ -40,17 +36,17 @@ A normal day uses roughly 60 Apollo credits:
 
 Once the hand-picked list runs out, each discovery page costs 1 more credit. People search doesn't use credits. `people_per_company` in `config/profile.json` sets the reveal count.
 
-If an Apollo request fails, the run stops without writing anything, so you can just re-run it. If there aren't enough companies left to fill a country's quota, the day is marked "short" in `TRACKER.md` and on the page.
+If an Apollo request fails, the run stops without writing anything and is retried later. If there aren't enough companies left to fill a country's quota, the day is marked "short" on the page.
 
 ## Changing who gets picked
 
 - **`config/targets.json`:** hand-picked companies, shown first, in order. Each has a `country` (`US`/`CA`) and an `angle`, which is the "why her" line.
 - **`config/profile.json`:** her proof points, the daily US/CA mix, which titles to pitch and in what priority, and the Apollo company filters used to find new companies once the hand-picked list runs out.
-- **`state/state.json`:** companies already shown, so nobody repeats. Delete a domain from `shown` to show that company again.
+- **`state.json` on the volume:** companies already shown, so nobody repeats.
 
 ## Run locally
 
 ```bash
-python scripts/daily.py --mock            # canned data, no key needed
-APOLLO_API_KEY=... python scripts/daily.py
+python scripts/daily.py --mock                                   # canned data into docs/data, no key needed
+TRACKER_DATA_DIR=./local-data TRACKER_MOCK=1 python server.py    # page + daily job on mock data, http://127.0.0.1:8080
 ```
