@@ -148,9 +148,16 @@ def load_json(path, default):
         return default
 
 
-def save_json(path, obj):
+def save_text(path, text):
+    """Write via a temp file and rename, so a crash never leaves a half-written file behind."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def save_json(path, obj):
+    save_text(path, json.dumps(obj, indent=1, ensure_ascii=False) + "\n")
 
 
 def role_for(title, profile):
@@ -350,26 +357,30 @@ def main():
     targets = load_json(CONFIG / "targets.json", [])
     state = load_json(STATE, {"shown": []})
     day_file = DATA / "days" / f"{args.date}.json"
-    if day_file.exists():
-        print(f"{day_file.name} already exists; nothing to do")
+    index = load_json(DATA / "index.json", {"days": []})
+    if args.date in index["days"]:  # the index entry is written last, so it marks a finished run
+        print(f"{args.date} already done; nothing to do")
         return
 
-    try:
-        companies, unmet = select(profile, targets, state, apollo, today)
-    except ApolloError as e:
-        sys.exit(f"Apollo request failed, nothing written so the run can be retried: {e}")
-    for u in unmet:
-        print(f"quota not met, {u}", file=sys.stderr)
+    if day_file.exists():  # an earlier run died after saving the day: finish it, no new Apollo calls
+        day = load_json(day_file, {})
+        print(f"finishing interrupted run for {args.date}")
+    else:
+        try:
+            companies, unmet = select(profile, targets, state, apollo, today)
+        except ApolloError as e:
+            sys.exit(f"Apollo request failed, nothing written so the run can be retried: {e}")
+        for u in unmet:
+            print(f"quota not met, {u}", file=sys.stderr)
+        day = {"date": args.date, "companies": companies, "unmet": unmet}
+        save_json(STATE, state)  # before the day file, so a finished day never repeats its companies
+        save_json(day_file, day)
 
-    day = {"date": args.date, "companies": companies, "unmet": unmet}
-    save_json(day_file, day)
-    TRACKER_MD.write_text(markdown(day) + "\n", encoding="utf-8")
-    index = load_json(DATA / "index.json", {"days": []})
+    save_text(TRACKER_MD, markdown(day) + "\n")
     index["days"] = sorted(set(index["days"]) | {args.date}, reverse=True)
     save_json(DATA / "index.json", index)
-    save_json(STATE, state)
-    print(f"wrote {day_file}: {len(companies)} companies, "
-          f"{sum(len(c['people']) for c in companies)} people")
+    print(f"wrote {day_file}: {len(day['companies'])} companies, "
+          f"{sum(len(c['people']) for c in day['companies'])} people")
 
 
 if __name__ == "__main__":

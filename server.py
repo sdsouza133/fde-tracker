@@ -13,6 +13,7 @@ import argparse
 import base64
 import datetime as dt
 import hmac
+import json
 import os
 import posixpath
 import subprocess
@@ -49,9 +50,13 @@ class Handler(SimpleHTTPRequestHandler):
             p = urllib.parse.unquote(path.split("?", 1)[0].split("#", 1)[0])
             if p.startswith("/data/"):
                 rel = posixpath.normpath(p[len("/data/"):])
-                if rel == "." or rel.startswith("..") or rel.startswith("/"):
-                    return str(DOCS / ".no-such-file")  # outside the volume or a folder: 404
-                return os.path.join(DATA_DIR, "data", *rel.split("/"))
+                root = os.path.realpath(os.path.join(DATA_DIR, "data"))
+                candidate = os.path.realpath(os.path.join(root, *rel.split("/")))
+                try:  # also catches drive-absolute parts like C:\ that os.path.join lets win on Windows
+                    inside = os.path.commonpath((root, candidate)) == root and candidate != root
+                except ValueError:
+                    inside = False
+                return candidate if inside else str(DOCS / ".no-such-file")  # outside the data folder: 404
         return super().translate_path(path)
 
     def authorized(self):
@@ -98,17 +103,32 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_error(404)
 
 
+def read_json(path, default):
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, ValueError):
+        return default
+
+
 def daily_loop(hour, mock):
-    """Run the daily job once per Toronto day after `hour`, retrying a failed run up to MAX_TRIES_PER_DAY."""
-    tries = {}
+    """Run the daily job once per Toronto day: at startup if today is missing, else from `hour` on.
+
+    Attempts are kept on the volume, so a redeploy can't reset the MAX_TRIES_PER_DAY cap.
+    """
+    runs_file = Path(DATA_DIR) / "runs.json"
+    startup = True
     while True:
         now = dt.datetime.now(TZ)
         day = now.date().isoformat()
-        done = (Path(DATA_DIR) / "data" / "days" / f"{day}.json").exists()
-        attempts = tries.setdefault(day, [])
-        due = now.hour >= hour and not done and len(attempts) < MAX_TRIES_PER_DAY
+        done = day in read_json(Path(DATA_DIR) / "data" / "index.json", {"days": []})["days"]
+        runs = read_json(runs_file, {})
+        attempts = runs.get(day, [])
+        due = (startup or now.hour >= hour) and not done and len(attempts) < MAX_TRIES_PER_DAY
+        startup = False
         if due and (not attempts or time.time() - attempts[-1] >= 3600):  # an hour between retries
             attempts.append(time.time())
+            runs_file.parent.mkdir(parents=True, exist_ok=True)
+            runs_file.write_text(json.dumps({day: attempts}), encoding="utf-8")  # only today matters
             print(f"daily run for {day} (try {len(attempts)})", flush=True)
             cmd = [sys.executable, str(ROOT / "scripts" / "daily.py"), "--date", day] + (["--mock"] if mock else [])
             code = subprocess.run(cmd).returncode
