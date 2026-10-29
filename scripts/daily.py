@@ -99,9 +99,12 @@ class MockApollo(Apollo):
         super().__init__("mock")
 
     def enrich_org(self, domain):
+        if domain in os.environ.get("MOCK_BROKE", "").split(","):  # a company that can't afford her
+            return {"id": f"org-{domain}", "name": domain.split(".")[0].title(), "estimated_num_employees": 3,
+                    "total_funding": 150000, "latest_funding_round_date": "2025-07-01"}
         return {"id": f"org-{domain}", "name": domain.split(".")[0].title(), "primary_domain": domain,
                 "estimated_num_employees": 12, "organization_headcount_six_month_growth": 0.25,
-                "total_funding_printed": "6M", "latest_funding_stage": "Seed",
+                "total_funding": 6000000, "total_funding_printed": "6M", "latest_funding_stage": "Seed",
                 "latest_funding_round_date": "2026-03-01", "founded_year": 2024, "city": "New York",
                 "country": "United States", "short_description": f"{domain} builds AI agents.",
                 "linkedin_url": f"https://www.linkedin.com/company/{domain.split('.')[0]}",
@@ -191,6 +194,12 @@ def select(profile, targets, state, apollo, today):
     """Fill each country's quota with companies that have someone to pitch, discovering more as needed."""
     state.setdefault("discovery_page", {})
     state.setdefault("backlog", {})
+    for country in profile["daily_mix"]:  # a saved page only means something for the filters that produced it
+        key = json.dumps(profile["discovery"][country], sort_keys=True)
+        if state.setdefault("discovery_filters", {}).get(country) != key:
+            state["discovery_page"][country] = 0
+            state["discovery_filters"][country] = key
+            state["backlog"][country] = []  # found under the old filters
     shown = set(state["shown"])
     seen = set(shown)
     queues = {}
@@ -201,7 +210,7 @@ def select(profile, targets, state, apollo, today):
         seen |= {t["domain"] for t in q}
         queues[country] = deque(q)
 
-    companies, unmet = [], []
+    companies, unmet, skipped = [], [], []
     for country, n in profile["daily_mix"].items():
         queue, got = queues[country], 0
         while got < n:
@@ -221,9 +230,35 @@ def select(profile, targets, state, apollo, today):
             if c["people"]:
                 companies.append(c)
                 got += 1
+            elif c.get("skipped"):
+                skipped.append({"domain": c["domain"], "name": c["name"], "country": country, "reason": c["skipped"]})
         if got < n:
             unmet.append(f"{country}: {got} of {n} (no more companies to try)")
-    return companies, unmet
+    return companies, unmet, skipped
+
+
+def money(n):
+    return f"${n / 1e6:.1f}M" if n >= 1e6 else f"${n / 1e3:.0f}K"
+
+
+def budget(org, profile, today):
+    """Can the company pay her min_monthly_usd? (ok, reason). Unknown data counts as no."""
+    b = profile["budget"]
+    pay = f"${b['min_monthly_usd']:,}/month"
+    funding = org.get("total_funding") or 0
+    revenue = org.get("annual_revenue") or 0
+    size = org.get("estimated_num_employees") or 0
+    when = org.get("latest_funding_round_date")
+    recent = when and (today - dt.date.fromisoformat(when[:10])).days <= b["max_funding_age_years"] * 365
+    if funding >= b["min_total_funding"] and recent:
+        return True, f"{money(funding)} raised, last round {when[:10]}: {pay} is easily covered"
+    if revenue >= b["min_annual_revenue"]:
+        return True, f"~{money(revenue)} annual revenue: {pay} is easily covered"
+    if size >= b["min_employees"]:
+        return True, f"~{size} people on payroll: {pay} is within budget"
+    seen = [x for x in (funding and f"{money(funding)} raised" + ("" if recent else " (no recent round)"),
+                        revenue and f"{money(revenue)} revenue", size and f"{size} {'person' if size == 1 else 'people'}") if x]
+    return False, f"can't confirm budget for {pay}: " + (", ".join(seen) if seen else "no funding, revenue or headcount data")
 
 
 def intel(org, jobs, news, profile, today):
@@ -249,7 +284,7 @@ def intel(org, jobs, news, profile, today):
         roles = "; ".join((j.get("title") or "") for j in rel[:4])
         out.append(f"Open roles that fit: {roles}" + (". They are hiring an FDE: pitch a contract that covers the gap while they search" if fde else ""))
     elif jobs:
-        out.append(f"{len(jobs)} open roles, none in testing or deployment yet: pitch her as the first person to own evals")
+        out.append(f"{len(jobs)} open role{'' if len(jobs) == 1 else 's'}, none in testing or deployment yet: pitch her as the first person to own evals")
     techs = [t.get("name") for t in org.get("current_technologies") or [] if t.get("name")] or org.get("technology_names") or []
     overlap = sorted({t for t in techs if any(s == t.lower() or s in t.lower().split() for s in profile["her_stack"])})
     if overlap:
@@ -267,6 +302,10 @@ def opener(org_name):
 
 def build_company(t, apollo, profile, today):
     org = apollo.enrich_org(t["domain"])
+    ok, why_budget = budget(org, profile, today)
+    if not ok:  # stop before people, jobs and news: no credits spent on a company that can't pay
+        print(f"  skip: {why_budget}")
+        return {"domain": t["domain"], "name": org.get("name") or t["name"], "people": [], "skipped": why_budget}
     org_id = org.get("id")
     jobs = apollo.job_postings(org_id) if org_id else []
     news = apollo.news(org_id) if org_id else []
@@ -292,6 +331,7 @@ def build_company(t, apollo, profile, today):
         })
     angle = t.get("angle") or org.get("short_description")
     bullets, roles = intel(org, jobs, news, profile, today)
+    bullets.insert(0, f"Budget: {why_budget}")
     name = org.get("name") or t["name"]
     return {
         "domain": t["domain"],
@@ -335,6 +375,8 @@ def markdown(day):
                 li = f"[profile]({p['linkedin']})" if p.get("linkedin") else "—"
                 md.append(f"| {p['name']}, {p.get('title') or ''} | {li} | {email} | {p['why']} |")
             md += ["", f"> {c['opener']}", ""]
+    if day.get("skipped"):
+        md += ["## Skipped: budget", ""] + [f"- {s['name']} ({s['domain']}): {s['reason']}" for s in day["skipped"]] + [""]
     return "\n".join(md)
 
 
@@ -367,12 +409,12 @@ def main():
         print(f"finishing interrupted run for {args.date}")
     else:
         try:
-            companies, unmet = select(profile, targets, state, apollo, today)
+            companies, unmet, skipped = select(profile, targets, state, apollo, today)
         except ApolloError as e:
             sys.exit(f"Apollo request failed, nothing written so the run can be retried: {e}")
         for u in unmet:
             print(f"quota not met, {u}", file=sys.stderr)
-        day = {"date": args.date, "companies": companies, "unmet": unmet}
+        day = {"date": args.date, "companies": companies, "unmet": unmet, "skipped": skipped}
         save_json(STATE, state)  # before the day file, so a finished day never repeats its companies
         save_json(day_file, day)
 

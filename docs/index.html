@@ -129,6 +129,11 @@ function render() {
       </article>`);
     }
   }
+  const skipped = (day.skipped || []).filter(s => filter === "all" || s.country === filter);
+  if (skipped.length) {
+    html.push(`<details class="card"><summary>Skipped: can't confirm they can pay (${skipped.length})</summary><ul class="intel">${
+      skipped.map(s => `<li><strong>${esc(s.name)}</strong> <span class="meta">${esc(s.domain)}</span>: ${esc(s.reason)}</li>`).join("")}</ul></details>`);
+  }
   if (day.unmet && day.unmet.length) {
     html.unshift(`<p class="flag">Short today: ${esc(day.unmet.join("; "))}. Add companies to config/targets.json or widen discovery in config/profile.json.</p>`);
   }

@@ -38,6 +38,16 @@ Once the hand-picked list runs out, each discovery page costs 1 more credit. Peo
 
 If an Apollo request fails, the run stops without writing anything and is retried later. If there aren't enough companies left to fill a country's quota, the day is marked "short" on the page.
 
+## Budget filter
+
+She needs at least $3,000 USD a month. A company is only listed if Apollo's data shows it can pay that. Any one of these is enough:
+
+- **Funding:** $1M+ raised in total, with the last round within 4 years.
+- **Revenue:** $500K+ in annual revenue.
+- **Payroll:** 10+ employees.
+
+Unknown data counts as no. A company that fails is skipped right after its 1-credit enrichment, before people, jobs and news, and its reason is listed under "Skipped" on the page. Apollo discovery also asks only for companies with $1M+ in total funding. Thresholds are under `budget` in `config/profile.json`.
+
 ## Changing who gets picked
 
 - **`config/targets.json`:** hand-picked companies, shown first, in order. Each has a `country` (`US`/`CA`) and an `angle`, which is the "why her" line.

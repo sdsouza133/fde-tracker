@@ -2,6 +2,13 @@
   "candidate": "uOttawa MS student (AI safety thesis, supervisor Kathleen Fraser) with 3 years at Marsh McLennan as IT Systems Engineer then Senior Engineer",
   "offer": "Part-time remote contractor for AI evals, red-teaming, pre-go-live testing and integrations",
   "daily_mix": {"US": 8, "CA": 2},
+  "budget": {
+    "min_monthly_usd": 3000,
+    "min_total_funding": 1000000,
+    "max_funding_age_years": 4,
+    "min_annual_revenue": 500000,
+    "min_employees": 10
+  },
   "ca_flag": "Canadian client: off-campus work capped at 24 h/week during term (study permit). Log hours.",
   "her_stack": ["c#", ".net", "asp.net", "angular", "node", "node.js", "javascript", "typescript", "sql", "rest", "python", "git", "azure"],
   "proof_points": {
@@ -27,7 +34,7 @@
   "people_per_company": 3,
   "relevant_job_keywords": ["forward deployed", "fde", "solutions engineer", "deployment", "implementation", "qa", "quality", "test", "eval", "ai engineer", "ml engineer", "red team", "safety", "trust", "integration", "customer engineer", "contract", "part-time", "freelance"],
   "discovery": {
-    "US": {"organization_locations": ["New York, US", "United States"], "q_organization_keyword_tags": ["ai safety", "llm evaluation", "ai agents", "generative ai", "insurtech", "fintech", "ai governance"], "organization_num_employees_ranges": ["1,10", "11,50"]},
-    "CA": {"organization_locations": ["Toronto, Canada", "Ottawa, Canada", "Vancouver, Canada"], "q_organization_keyword_tags": ["ai safety", "llm evaluation", "ai agents", "generative ai", "insurtech", "fintech", "ai governance"], "organization_num_employees_ranges": ["1,10", "11,50"]}
+    "US": {"organization_locations": ["New York, US", "United States"], "q_organization_keyword_tags": ["ai safety", "llm evaluation", "ai agents", "generative ai", "insurtech", "fintech", "ai governance"], "organization_num_employees_ranges": ["1,10", "11,50"], "total_funding_range[min]": 1000000},
+    "CA": {"organization_locations": ["Toronto, Canada", "Ottawa, Canada", "Vancouver, Canada"], "q_organization_keyword_tags": ["ai safety", "llm evaluation", "ai agents", "generative ai", "insurtech", "fintech", "ai governance"], "organization_num_employees_ranges": ["1,10", "11,50"], "total_funding_range[min]": 1000000}
   }
 }
