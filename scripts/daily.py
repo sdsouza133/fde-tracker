@@ -199,6 +199,7 @@ def select(profile, targets, state, apollo, today):
         if state.setdefault("discovery_filters", {}).get(country) != key:
             state["discovery_page"][country] = 0
             state["discovery_filters"][country] = key
+            state["backlog"][country] = []  # found under the old filters
     shown = set(state["shown"])
     seen = set(shown)
     queues = {}
