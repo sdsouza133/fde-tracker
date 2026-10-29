@@ -194,6 +194,11 @@ def select(profile, targets, state, apollo, today):
     """Fill each country's quota with companies that have someone to pitch, discovering more as needed."""
     state.setdefault("discovery_page", {})
     state.setdefault("backlog", {})
+    for country in profile["daily_mix"]:  # a saved page only means something for the filters that produced it
+        key = json.dumps(profile["discovery"][country], sort_keys=True)
+        if state.setdefault("discovery_filters", {}).get(country) != key:
+            state["discovery_page"][country] = 0
+            state["discovery_filters"][country] = key
     shown = set(state["shown"])
     seen = set(shown)
     queues = {}
